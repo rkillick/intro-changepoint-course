@@ -1,0 +1,182 @@
+\mode<presentation>
+% Beamer is a 4:3 ratio at 12.79817 by cm 9.59863 cm or (364.19536pt,273.14662pt)
+% Can do a 16:9 ratio at 15.999811 cm 8.999893 cm
+\newif\if@doLUlogo
+\@doLUlogofalse
+\newcommand\LUlogo[1]{\def\insertLUlogo{#1} \@doLUlogotrue}
+
+% Create backgrounds as command so we can reuse.
+\newcommand{\titlebackground}[1][\@empty]{%
+  \begin{tikzpicture}
+    \useasboundingbox (0,0) rectangle(\the\paperwidth,\the\paperheight);
+    \if@doGRID
+    \draw[step=0.2cm,gray!20,very thin] (-2,-2) grid (\LUgridwd,10);
+    \draw[step=1cm,gray,thin] (-2,-2) grid (\LUgridwd,10);
+    \fi
+    \ifx\@empty#1
+    \if@doFOOTLINE
+    \draw[color=lancasterRed,fill=lancasterRed] (\LUrightmargin,0.0) -- (\LUfootlineright,0.0) arc (270:360:0.4) -- (\LUrightmargin,0.4);
+    \draw[color=white,line width=0.2mm,dash pattern=on 0.05cm off 0.05cm] (\LUfootlinebarright,0.03) -- (\LUfootlinebarright,0.4);
+    \draw[color=white,line width=0.2mm,dash pattern=on 0.05cm off 0.05cm] (\LUfootlinebarleft,0.03) -- (\LUfootlinebarleft,0.4);
+    \else
+    \draw[color=lancasterRed,fill=lancasterRed] (\LUleftmarginminuscorenerarc,0.0)  arc (270:360:2) -- (\LUwidth, 0.0);
+    \fi
+    \else
+    \fill[color=lancasterGrey!20] (\LUrightmargin,1.93) rectangle (\LUleftmargin,4.59);
+    \fill[color=lancasterBlack] (\LUrightmargin,1.76) rectangle (\LUleftmargin,1.93);
+    \draw[color=lancasterRed,fill=lancasterRed] (\LUrightmargin,0.56) -- (\LUleftmarginminusarc,0.56) arc (270:360:1.2) -- (\LUrightmargin,1.76);
+    \fi
+    
+    \node[anchor=north east,inner sep=0, outer sep=0] at (\LUlogoposright,\LUlogopostop)
+         {
+           \if@doLUlogo
+			\includegraphics[height=0.8cm]{\insertLUlogo}
+           \else
+			%\includegraphics[height=0.2cm]{img/LUgenericlogo.pdf}
+			\includegraphics[height=2cm]{img/LUgenericlogo.pdf}
+           \fi
+         };
+
+  \end{tikzpicture}    
+}
+
+
+% Background theme.
+\setbeamertemplate{background}{%
+  \ifnum\thepage>1\relax%
+  \titlebackground
+  \else
+  \titlebackground[title]
+  \fi
+}
+
+
+% Title page
+\defbeamertemplate*{title page}{lancaster}[1][]
+                   {
+\color{lancasterRed}
+\begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,sep=0pt,#1]{title page header}
+      \usebeamerfont{title}\inserttitle\par%
+    \end{beamercolorbox}%
+    
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,sep=0pt,#1]{subtitle page header}
+      \usebeamerfont{subtitle}\insertsubtitle\par%
+    \end{beamercolorbox}%
+
+    \vskip0.1cm%
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,#1]{author}
+      \usebeamerfont{author}\insertauthor%
+    \end{beamercolorbox}
+     \vskip-0.18cm%
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,#1]{date}
+      \usebeamerfont{author}\insertdate%
+    \end{beamercolorbox}
+  \vfill
+}
+
+\newcommand{\makefinal}{
+  {
+    % clear current background else we get the triangle
+    \setbeamertemplate{background}{}
+    \setbeamertemplate{footline}{}
+    \usebackgroundtemplate{
+      \titlebackground[title]
+    }
+  \setbeamertemplate{headline}{}
+  \begin{frame}
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,sep=0pt]{title page header}
+      %      \usebeamerfont{title}\inserttitle\par%
+    \end{beamercolorbox}%
+    
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,sep=0pt]{subtitle page header}
+      %     \usebeamerfont{subtitle}\insertsubtitle\par%
+    \end{beamercolorbox}%
+
+    \vskip0.1cm%
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm]{author}
+      \usebeamerfont{author}\insertauthor%
+    \end{beamercolorbox}
+     \vskip-0.18cm%
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm]{date}
+      \usebeamerfont{author}\insertdate%
+    \end{beamercolorbox}
+    \vfill
+  \end{frame}
+}
+}
+
+%backup slides
+\newenvironment{backupslides}{
+  {
+    % clear current background else we get the triangle
+    \setbeamertemplate{background}{}
+    \setbeamertemplate{footline}{}
+    \usebackgroundtemplate{
+      \titlebackground[title]
+    }
+    \begin{frame}
+      \newcounter{finalframe}
+      \setcounter{finalframe}{\value{framenumber}}
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,sep=0pt]{title page header}
+            \usebeamerfont{title}Backup Slides\par%
+    \end{beamercolorbox}%
+    
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm,sep=0pt]{subtitle page header}
+      %     \usebeamerfont{subtitle}\insertsubtitle\par%
+    \end{beamercolorbox}%
+
+    \vskip0.1cm%
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm]{author}
+      %      \usebeamerfont{author}\insertauthor%
+    \end{beamercolorbox}
+     \vskip-0.18cm%
+    \begin{beamercolorbox}[wd=11.6cm,leftskip=0cm]{date}
+      %     \usebeamerfont{author}\insertdate%
+    \end{beamercolorbox}
+    \vfill
+    \end{frame}
+  }
+}
+{
+  \setcounter{framenumber}{\value{finalframe}}
+}
+
+
+% standard slide:
+\setbeamersize{text margin left=0.6cm}
+\setbeamersize{text margin right=0.6cm}
+%\setbeamertemplate{itemize/enumerate body begin}{\setlength{\leftmargini}{0.6cm}}
+
+% Items
+\useinnertheme{circles}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{enumerate items}[default]
+\setbeamertemplate{blocks}[default]
+\setbeamertemplate{navigation symbols}{}
+
+
+\if@doFOOTLINE
+\defbeamertemplate*{footline}{infolines theme}
+{
+  \leavevmode%
+  \hbox{%
+    \hspace{\LUrightmargin}
+  \begin{beamercolorbox}[wd=\LUfootlinewd,ht=0.277cm,dp=0.123cm,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor\expandafter\beamer@ifempty\expandafter{\beamer@shortinstitute}{}{~~(\insertshortinstitute)}
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=\LUfootlinewd,ht=0.277cm,dp=0.123cm,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}\insertshorttitle
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=\LUfootlinewd,ht=0.277cm,dp=0.123cm,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}
+    \insertframenumber{} / \inserttotalframenumber\hspace*{0.4cm} 
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\fi
+
+
+
+\mode
+<all>
+

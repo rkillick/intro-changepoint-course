@@ -1,0 +1,895 @@
+---
+title: "Optimal changepoint detection"
+author: "Rebecca Killick(r.killick@lancs.ac.uk)"
+date: "IGS Workshop 2017" # International Glaciology Society
+output:
+  beamer_presentation:
+    includes:
+      in_header: header.tex
+    theme: lancaster
+---
+
+```{r,include=FALSE}
+if(!require(changepoint)){
+  install.packages('changepoint')
+}
+library(changepoint)
+if(!require(changepoint.np)){
+  install.packages('changepoint.np')
+}
+library(changepoint.np)
+knitr::opts_chunk$set(fig.align='center',fig.show='hold',fig.width=4,fig.height=4,size='footnotesize', cache=TRUE)
+knitr::opts_knit$set(progress = FALSE,verbose = FALSE)
+```
+
+## Workshop Plan
+* What are changepoints?
+* Notation
+* Likelihood based changepoints
+    + Change in mean
+    + Change in variance
+    + Change in mean & variance
+* How many changes?
+* Non-parametric changepoints
+* Checking assumptions (if time allows)
+
+There will be tasks throughout the sections.
+
+## What are Changepoints?
+Changepoints are also known as:
+
+* breakpoints
+* segmentation
+* structural breaks
+* regime switching
+* detecting disorder
+
+  and can be found in a wide range of literature including
+
+* quality control
+* economics
+* medicine
+* environment
+* linguistics
+* \ldots
+
+
+## What are changepoints?
+For data $y_1, \ldots, y_n$, if a changepoint exists at $\tau$, then $y_1,\ldots,y_{\tau}$ differ from $y_{\tau+1},\ldots,y_n$ in some way.  
+
+There are many different types of change.
+  
+```{r, echo=F, out.width='.33\\textwidth'}
+par(mar=c(4,4,.3,.3)) 
+set.seed(1)
+# Change in mean example following EFK
+x=1:500
+y=c(rnorm(100,1,sd=0.5),rnorm(150,0,sd=0.5),rnorm(200,2,sd=0.5),rnorm(50,0.5,sd=0.5))
+plot(x,y,type='l',xlab='',ylab='')
+lines(x=1:100,y=rep(1,100),col='red',lwd=3)
+lines(x=101:250,y=rep(0,150),col='red',lwd=3)
+lines(x=251:450,y=rep(2,200),col='red',lwd=3)
+lines(x=451:500,y=rep(0.5,50),col='red',lwd=3)
+# Change in variance example following EFK
+x=1:500
+y=c(rnorm(100,0,sd=0.1),rnorm(150,0,sd=0.7),rnorm(200,0,sd=0.25),rnorm(50,0,sd=1))
+plot(x,y,type='l',xlab='',ylab='')
+# Change in regression
+x=1:500
+y=c(0.01*x[1:100],1.5-0.02*(x[101:250]-101),(10^-5)*(-150000+2.5*(x[251:450]^2-251^2)-(x[251:450]-250)),rep(1,50))
+ynoise=y+rnorm(500,0,0.2)
+plot(x,ynoise,type='l',xlab='',ylab='')
+lines(x=1:100,y=0.01*x[1:100],lwd=3,col='red')
+lines(x=101:250,y=1.5-0.02*(x[101:250]-101),lwd=3,col='red')
+lines(x=251:450,y=(10^-5)*(-150000+2.5*(x[251:450]^2-251^2)-(x[251:450]-250)),lwd=3,col='red')
+lines(x=451:500,y=rep(1,50),lwd=3,col='red')
+```
+
+## What is the goal?
+* Has a change occurred?
+* If yes, where is the change?
+* What is the difference between the pre and post change data?
+    + Maybe this is the type of change
+    + Maybe it is the parameter values before and after the change
+* What is the probability that a change has occured?
+* How certain are we of the changepoint location?
+* How many changes have occurred (+ all the above for each change)?
+* Why has there been a change?
+
+## Notation and Concepts
+```{r, echo=F,out.height='.8\\textheight'}
+par(mar = c(4, 4, 0.1, 0.1))
+set.seed(1)
+data=c(rnorm(100,0,1),rnorm(100,5,1),rnorm(100,0,1))
+plot(data,xlab='',ylab='',xaxt='n',type='l')
+axis(1,at=c(0,100,200,300),labels=c(0,expression(tau[1]),expression(tau[2]),300))
+```
+
+##Notation and Concepts
+Thus a changepoint model for a change in mean has the following formulation:
+$$
+y_t = \left\{ \begin{array}{lcl} \mu_1 & \mbox{if} & 1\leq t \leq \tau_1 \\
+          \mu_2 & \mbox{if} & \tau_1 < t \leq \tau_2 \\
+          \vdots & & \vdots \\
+          \mu_{m+1} & \mbox{if} & \tau_m < t \leq \tau_{m+1}=n \end{array} \right.
+$$
+
+
+##More complicated changes
+```{r, echo=F,out.width='.5\\textwidth'}
+set.seed(1)
+par(mar=c(4,4,.3,.3)) 
+# Change in ar example
+x=1:500
+y=c(arima.sim(model=list(ar=0.8),n=100),arima.sim(model=list(ar=c(0.5,0.2)),n=150),arima.sim(model=list(ar=c(-0.2)),n=200),arima.sim(model=list(ar=c(-0.5)),n=50))
+plot(x,y,type='l',xlab='',ylab='')
+# Change in seasonality and noise
+x=1:500
+y=c(sin(x[1:250]/21)+cos(x[1:250]/21),sin((1.1*x[251:500]/15))+cos((1.1*x[251:500]/15)))
+ynoise=y+c(rnorm(100,0,sd=0.1),rnorm(150,0,sd=0.25),rnorm(200,0,sd=0.3),rnorm(50,0,sd=.4))
+plot(x,ynoise,type='l',xlab='',ylab='')
+```
+
+## Online vs Offline
+* Online
+    + Processes data as it arrives or in batches
+    + Goal is quickest detection of a change
+    + Often used in processing control, intrusion detection
+* Offline
+    + Processes all the data in one go
+    + Goal is accurate detection of a change
+    + Often used in genome analysis, audiology
+
+
+## Online vs Offline
+```{r, echo=F,out.width='.5\\textwidth'}
+set.seed(1)
+par(mar=c(4,4,.3,.3)) 
+x=1:110
+y=c(rnorm(100),rnorm(10,2,1))
+# online example
+library(cpm)
+cpm=detectChangePoint(y,cpmType="Student")
+plot(x,y,type='n',xlab='',ylab='')
+lines(x[1:cpm$detectionTime],y[1:cpm$detectionTime])
+lines(x[(cpm$detectionTime+1):110],y[(cpm$detectionTime+1):110],lty=5,col='grey')
+abline(v=cpm$changePoint)
+abline(v=cpm$detectionTime,col='red')
+#offline example
+plot(x,y,type='l',xlab='',ylab='')
+cpt=cpt.mean(y)
+abline(v=cpts(cpt))
+```
+
+
+## Packages
+Today we will use the
+
+`library(changepoint)`
+
+`library(changepoint.np)`
+
+packages.
+
+Other notable `R` packages are available for changepoint analysis including
+
+* `strucchange` - for changes in regression
+* `bcp` - if you want to be Bayesian
+* `cpm` - for online changes (`changepoint.online` coming soon)
+* `EnvCpt` - for testing between changes in mean, trend and/or AR(1) structure
+
+## Single Changepoint
+Assume we have time-series data where
+$$
+y_t|\theta_t \sim \mbox{N}(\theta_t,1),
+$$
+but where the means, $\theta_t$, are piecewise constant through time with a single change.
+
+
+
+```{r, echo=FALSE, out.width='.5\\textwidth'}
+# Change in mean example following EFK
+x=1:500
+y=c(rnorm(150,1,sd=0.5),rnorm(350,0,sd=0.5))
+plot(x,y,type='l',xlab='',ylab='')
+lines(x=1:150,y=rep(1,150),col='red',lwd=3)
+lines(x=151:500,y=rep(0,350),col='red',lwd=3)
+```
+
+
+## Single Changepoint
+\begin{center}
+\includegraphics[width=0.9\textwidth]{SingleChange.pdf}
+\end{center}
+<!-- We want to infer the number and position of the points at which the mean changes. One approach: -->
+
+<!-- **Likelihood Ratio Test** -->
+
+<!-- To detect a single changepoint we can use the (log-)likelihood ratio test statistic: -->
+<!-- $$ -->
+<!-- LR=\max_\tau\{\ell(y_{1:\tau})+\ell(y_{\tau+1:n})-\ell(y_{1:n})\}. -->
+<!-- $$ -->
+
+<!-- We infer a changepoint if $LR>\lambda$ for some (suitably chosen) $\lambda$. If we infer a changepoint its position is estimated as  -->
+<!-- $$ -->
+<!-- \tau=\arg \max \{\ell(y_{1:\tau})+\ell(y_{\tau+1:n})-\ell(y_{1:n})\}. -->
+<!-- $$ -->
+
+## Finding a single change
+```{r,fig.show='animate',echo=FALSE,out.height='0.6\\textheight'}
+for(i in 1:499){
+plot(x,y,type='l',xlab='',ylab='',main="499 options")
+abline(v=i,col='red')
+lines(x=1:i,y=rep(mean(y[1:i]),i),col='red',lwd=3)
+lines(x=(i+1):500,y=rep(mean(y[(i+1):500]),500-i),col='red',lwd=3)
+}
+```
+
+## Finding a single change
+```{r,echo=FALSE,out.width='.5\\textwidth'}
+    n=length(y)
+    sumy=c(0,cumsum(y))
+    sumy2=c(0,cumsum(y^2))
+    taustar=1:n
+    tmp=sumy2[taustar+1]-sumy[taustar+1]^2/taustar + (sumy2[n+1]-sumy2[taustar+1]) - ((sumy[n+1]-sumy[taustar+1])^2)/(n-taustar)
+ts.plot(tmp,main=which.min(tmp))
+abline(v=which.min(tmp),col='red')
+```
+
+## Finding a single change
+How do we know if the changepoint found is "significant" or not?
+
+* We also calculate the cost of the whole data with no change
+* If the difference is **large enough** then we say there is a change
+
+In practice **large enough** is hard to define as it is application dependent.  
+
+The default in the `changepoint` package is MBIC - a Modified Bayesian Information Criterion.  
+
+This will not be appropriate for all data sets!  More later $\ldots$
+
+## `changepoint` R package
+The `changepoint` R package contains 3 wrapper functions:
+
+* `cpt.mean` - mean only changes
+* `cpt.var` - variance only changes
+* `cpt.meanvar` - mean and variance changes
+
+The package also contains:
+
+* functions/methods for the `cpt` S4 class
+* 5 data sets
+* other R functions that are made available for those who know what they are doing and might want to extend/modify the package.
+
+
+## The `cpt` class
+* S4 class
+* Slots store all the information from the analysis
+    + e.g. `data.set`, `cpts`, `param.est`, `pen.value`, `ncpts.max`
+* Slots are accessed via their names e.g. `cpts(x)`
+* Standard methods are available for the class e.g. `plot`, `summary`
+* Additional generic functions are available e.g. `seg.len`, `ncpts`
+* Each core function outputs a `cpt` object
+
+##  `cpt.mean`
+`cpt.mean(data, penalty="MBIC", pen.value=0, method="AMOC", Q=5, test.stat="Normal", class=TRUE, param.estimates=TRUE,minseglen=1)`
+
+* `data` - vector or `ts` object
+* `penalty` - cut-off point, MBIC, SIC, BIC, AIC, Hannan-Quinn, Asymptotic, Manual. 
+* `pen.value` - Type I error for Asymptotic, number or character for manual.
+* `method` - AMOC, PELT, SegNeigh, BinSeg.
+* `Q` - max number of changes for SegNeigh or BinSeg.
+* `test.stat` - Test statistic, Normal or CUSUM.
+* `class` - return a `cpt` object or not.
+* `param.estimates` - return parameter estimates or not.
+* `minseglen` - minimum number of data points between changes.
+
+
+## Single Change in Mean
+```{r, out.width='.3\\textwidth'}
+set.seed(1)
+m1=c(rnorm(100,0,1),rnorm(100,5,1))
+m1.amoc=cpt.mean(m1)
+cpts(m1.amoc)
+```
+## Single Change in Mean
+```{r}
+plot(m1.amoc)
+```
+
+## Task: Nile
+Data from Cobb (1978): readings of the annual flow volume of the Nile River at Aswan from 1871 to 1970.
+```{r,fig.height=3,fig.width=7,out.height='0.35\\textheight',out.width='\\textwidth'}
+data(Nile)
+ts.plot(Nile)
+```
+
+Hypothesized that there was a change around the turn of the century.
+
+
+## Task: Nile
+Use the  `cpt.mean` function to see if there is evidence for a change in mean in the Nile river data.
+```{r}
+data(Nile)
+```
+If you identify a change, where is it and what are the pre and post change means?
+
+Don't forget to
+```{r}
+library(changepoint)
+```
+before you start
+
+## Task: Nile
+Annual flow volume of the Nile River at Aswan from 1871 to 1970 studied in Cobb(1978).
+```{r}
+nile.default=cpt.mean(Nile)
+cpts(nile.default)
+cpts.ts(nile.default)
+param.est(nile.default)
+```
+
+## Task: Nile
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(nile.default)
+```
+
+## 	Multiple Changepoints
+```{r,echo=FALSE}
+x=1:100
+y=c(rnorm(20,1,sd=0.5),rnorm(30,0,sd=0.5),rnorm(40,2,sd=0.5),rnorm(10,0.5,sd=0.5))
+plot(x,y,type='l',xlab='',ylab='')
+```
+
+## Multiple Changepoints
+```{r,fig.show='animate',echo=FALSE,out.height='0.7\\textheight'}
+# for(i in 1:97){
+  for(j in (1):98){
+    for(k in (j+1):99){
+plot(x,y,type='l',xlab='',ylab='',main=paste(choose(length(y)-1,2),'options'))
+# abline(v=c(i,j,k),col='red')
+abline(v=c(j,k),col='red')
+# lines(x=1:i,y=rep(mean(y[1:i]),i),col='red',lwd=3)
+# lines(x=(i+1):j,y=rep(mean(y[(i+1):j]),j-i),col='red',lwd=3)
+lines(x=1:j,y=rep(mean(y[1:j]),j),col='red',lwd=3)
+lines(x=(j+1):k,y=rep(mean(y[(j+1):k]),k-j),col='red',lwd=3)
+lines(x=(k+1):100,y=rep(mean(y[(k+1):100]),100-k),col='red',lwd=3)
+    }
+  }
+# }
+```
+<!-- Define $m$ to be the number of changepoints, with positions $\bm{\tau}=(\tau_0,\tau_1,\ldots,\tau_{m+1})$ where $\tau_0=0$ and $\tau_{m+1}=n$. -->
+
+<!-- Then one application of the Likelihood ratio test can be viewed as -->
+<!-- $$ -->
+<!-- \min_{m\in\{0,1\},\bm{\tau}} \left\{ -->
+<!-- \sum_{i=1}^{m+1} \left[-\ell(y_{\tau_{i-1}:\tau_{i}})\right] + \lambda m \right\} -->
+<!-- $$ -->
+<!-- Repeated application is thus aiming to minimise -->
+<!-- $$ -->
+<!-- \min_{m,\bm{\tau}} \left\{ -->
+<!-- \sum_{i=1}^{m+1} \left[-\ell(y_{\tau_{i-1}:\tau_{i}})\right] + \lambda m \right\} -->
+<!-- $$ -->
+
+<!-- ## Penalised Likelihood -->
+<!-- The above can be viewed as a special case of penalised likelihood. Here the aim -->
+<!-- is to maximise the *(log-)likelihood* over the number and position of the changepoints, but -->
+<!-- *subject to* a penalty, that depends on the number of changepoints. The penalty is to avoid -->
+<!-- over-fitting. -->
+
+<!-- This is equivalent to minimising -->
+<!-- $$ -->
+<!-- \min_{m,\bm{\tau}} \left\{ -->
+<!-- \sum_{i=1}^{m+1} \left[-\ell(y_{\tau_{i-1}:\tau_{i}})\right] + \lambda f(m) \right\} -->
+<!-- $$ -->
+<!-- for a suitable penalty function $f(m)$ and penalty constant $\lambda$. -->
+
+
+<!-- ## Identifying changes? -->
+<!-- All these methods can be cast in terms of minimising a function of $m$ and $\bm{\tau}$ of the form: -->
+<!-- $$ -->
+<!-- \sum_{i=1}^{m+1}{\left[\mathcal{C}(y_{(\tau_{i-1}+1):\tau_i})\right] + \beta f(m)}. -->
+<!-- $$ -->
+
+<!-- This function depends on the data just through a sum of a *cost* for each segment.  There is then a penalty term that depends on the number of segments. -->
+
+<!-- ### Open Research Question -->
+<!-- What penalty should I use? -->
+
+<!-- Several have attempted to answer this question, but in reality have added their own criteria to the list.  At best, we have specific criteria shown to be optimal in very specific settings. -->
+
+
+## The Challenge
+* What are the values of $\tau_1,\ldots,\tau_m$?
+* What is $m$?
+
+* For $n$ data points there are $2^{n-1}$ possible solutions
+* If $m$ is known there are still $\binom{n-1}{m}$ solutions
+* If $n=1000$ and $m=10$,  $2.607755 \times 10^{23}$ solutions
+
+* How do we search the solution space efficiently?
+
+
+## Methods in `changepoint`
+* At Most One Change (`AMOC`)
+
+*Approximate* but computationally **fast**:
+
+* Binary Segmenation (`BinSeg`) (Scott and Knott (1974)) which is $\mathcal{O}(n\log n)$ in CPU time.
+	
+*Slower* but **exact**:
+
+* Segment Neighbourhood (`SegNeigh`) (Auger and Lawrence (1989)) is $\mathcal{O}(Qn^2)$.
+
+**Fast** and **exact**:
+
+* Pruned Exact Linear Time (`PELT`) (Killick et al. (2012)) At worst  $\mathcal{O}(n^2)$. For linear penalties <!-- $f(m)=m$ -->, scaling changes, $\mathcal{O}(n)$.
+
+
+## cpt.var
+`cpt.var(data, penalty, pen.value, know.mean=FALSE, mu=NA, method, Q, test.stat="Normal", class, param.estimates, minseglen=2)`
+
+Majority of arguments are the same as for `cpt.mean`
+
+* `know.mean` - if known we don't count it as an estimated parameter when calculating
+penalties.
+* `mu` - Mean if known.
+* `test.stat` - Normal  or CSS (cumulative sums of squares)
+* `minseglen` - Default is 2
+
+
+## Changes in Variance
+```{r,results='hold'}
+set.seed(1)
+v1=c(rnorm(100,0,1),rnorm(100,0,2),rnorm(100,0,10), 
+     rnorm(100,0,9))
+v1.man=cpt.var(v1,method='PELT',penalty='Manual',
+     pen.value='2*log(n)')
+cpts(v1.man)
+param.est(v1.man)
+```
+## Changes in Variance
+Ratios of true variances (4, 25, 0.81)
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(v1.man,cpt.width=3)
+```
+
+## `cpt.meanvar`
+`cpt.meanvar(data, penalty, pen.value, method, Q, test.stat="Normal", class, param.estimates, shape=1,minseglen=2)`
+
+Again the same underlying structure as `cpt.mean`.
+
+* `test.stat` - choice of Normal, Gamma, Exponential, Poisson.
+* `shape` - assumed shape parameter for Gamma.
+* `minseglen` - minimum segment length of 2
+
+## Mean & Variance
+```{r}
+set.seed(1)
+mv1=c(rexp(50,rate=1),rexp(50,5),rexp(50,2),rexp(50,7))
+mv1.pelt=cpt.meanvar(mv1,test.stat='Exponential',
+      method='BinSeg',Q=10,penalty="SIC")
+cpts(mv1.pelt)
+param.est(mv1.pelt)
+```
+
+## Mean & Variance
+```{r}
+plot(mv1.pelt,cpt.width=3,cpt.col='blue')
+```
+
+<!-- ## FTSE100 -->
+<!-- Yahoo! Finance data, daily returns from FTSE100 index. -->
+<!-- 2nd April 1984 until the 13th September 2012 -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- data(ftse100) -->
+<!-- plot(ftse100,type='l') -->
+<!-- ``` -->
+
+
+<!-- ## Task: FTSE100 -->
+<!-- Use the  `cpt.var` function to see if there is evidence for changes in variance in the FTSE100 data. -->
+<!-- ```{r} -->
+<!-- data(ftse100) -->
+<!-- ``` -->
+<!-- If you identify changes, where are they and what are the variances in each segment? -->
+
+## Task HC1
+G+C content within part of Human Chromosome 1, data from NCBI.
+3kb windows along the Human Chromosome from 10Mb to 33Mb.
+
+Use the `cpt.meanvar` function to identify regions with different C+G content.
+
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+data(HC1)
+ts.plot(HC1)
+```
+
+<!-- ## A solution: FTSE100 -->
+<!-- Yahoo! Finance data, daily returns from FTSE100 index. -->
+<!-- ```{r} -->
+<!-- data(ftse100) -->
+<!-- ftse.man=cpt.var(ftse100[,2],method='PELT',minseglen=7) -->
+<!-- ncpts(ftse.man) -->
+<!-- ``` -->
+
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r, fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(ftse.man,ylab='Returns') -->
+<!-- ``` -->
+
+## A solution: HC1
+```{r}
+data(HC1)
+hc1.pelt=cpt.meanvar(HC1,method='PELT',penalty='Manual',
+		pen.value=14)
+ncpts(hc1.pelt)
+```
+## A solution: HC1
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(hc1.pelt,ylab='G+C Content',cpt.width=3)
+```
+
+
+## Number of changes?
+Does the number of changes appear reasonable?
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(hc1.pelt,ylab='G+C Content',cpt.width=3)
+```
+
+## CROPS
+**C**hangepoints for a **r**ange **o**f **p**enaltie**s**
+
+Use `penalty='CROPS'` with `method='PELT'` to get all segmentations for a range of penalty values.
+
+```{r}
+v1.crops=cpt.var(v1,method="PELT",penalty="CROPS",
+                 pen.value=c(5,500))
+```
+## CROPS
+```{r}
+cpts.full(v1.crops)
+```
+## CROPS
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+pen.value.full(v1.crops)
+plot(v1.crops,ncpts=5)
+```
+
+## CROPS
+```{r,fig.height=4,fig.width=4,out.height='0.7\\textheight'}
+plot(v1.crops,diagnostic=TRUE)
+```
+
+<!-- ## Lavielle (2005) -->
+<!-- For $1\leq K\leq K_{MAX}$: -->
+<!-- $$ -->
+<!-- J_K = \frac{\ell_{K_{MAX}}-\ell_K}{\ell_{K_{MAX}}-\ell_1} \left(K_{MAX}-1\right) + 1 -->
+<!-- $$ -->
+<!-- Then for $2\leq K\leq K_{MAX}-1$: -->
+<!-- \begin{align} -->
+<!-- D_K &= J_{K-1}-2J_K+J_{K+1} \\ -->
+<!-- D_1 &= \infty -->
+<!-- \end{align} -->
+<!-- Then -->
+<!-- $$ -->
+<!-- \hat{K} = \max\{1\leq K\leq K_{MAX}-1 : D_K>C\} -->
+<!-- $$ -->
+<!-- $C$ is the threshold for a change. -->
+
+
+## `cpt.np`
+`cpt.np(data, penalty, pen.value, method, test.stat="empirical_distribution", class, minseglen=1, nquantiles=10)`
+
+Again the same underlying structure as `cpt.mean`.
+
+* `test.stat` - choice of empirical_distribution
+* `minseglen` - minimum segment length of 1
+* `nquantiles` - number of quantiles to use
+
+## Example
+```{r}
+set.seed(12)
+J <- function(x){(1+sign(x))/2}
+n <- 1000
+tau <- c(0.1,0.13,0.15,0.23,0.25,0.4,0.44,0.65,0.76,0.78,
+      0.81)*n
+h <- c(2.01, -2.51, 1.51, -2.01, 2.51, -2.11, 1.05, 2.16, 
+      -1.56, 2.56, -2.11)
+sigma <- 0.5
+t <- seq(0,1,length.out = n)
+data <- array()
+for (i in 1:n){
+   data[i] <- sum(h*J(n*t[i] - tau)) + (sigma * rnorm(1))
+}
+```
+
+## Example
+```{r}
+out <- cpt.np(data, method="PELT",minseglen=2, 
+        nquantiles =4*log(length(data)))
+cpts(out)
+```
+## Example
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(out)
+```
+
+<!-- ## Task: CROPS -->
+<!-- Look at the FTSE100 data again and use the CROPS technique to determine an appropriate number of changes. -->
+
+<!-- ## Task: Air Temps -->
+<!-- ```{r,echo=FALSE} -->
+<!-- airtemp=rev(c(5.37,-0.67,-1.30,NaN,-4.80,-4.60,-3.43,-4.20,-5.17,-6.50,-3.83,NaN,-5.43,-3.73,-7.73,-7.00,-4.63,-7.27,-0.40,-5.53,-4.03,-6.00,-3.07,-2.23,-2.90,-6.93,-7.07,-6.10,-6.60,-6.80,-6.47,-4.50,-7.23,-5.27,-7.47,-8.00,-2.53,-2.83,-5.30,NaN,-4.33,-6.33,-7.27,-7.47,-8.77,-6.47,-3.80,-7.00,-6.40,-8.60,-4.77,-3.37,-5.20,-5.10,-7.50)) -->
+<!-- ``` -->
+<!-- Yearly air temperatures from Fedorova, AMJ glacier. 3 missing values -->
+<!-- Use the `cpt.meanvar` function and CROPS to identify the number of changes. -->
+
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(seq(from=1959,to=2013,by=1),airtemp,type='l') -->
+<!-- ``` -->
+
+<!-- Hint: To remove the NAs use `airtemp[!is.na(airtemp)]`. -->
+
+## Task: Sea Ice
+```{r,echo=FALSE}
+seaice=c(5.61,10.09,7.54,9.68,5.72,4.83,5.25,6.09,6.29,6.18,5.2,5.56,6.07,4.09,4.72,2.98,3.27,5.27,0.82,9.43,5.35,4.49,4.37,4.13,4.65,4.97,5.17,4.54,5.49,2.65,2.23,2.09,1.65,1.75,2.12,1.28)
+```
+Yearly Sea Ice measurements for July-Sept for Barents from 1979 until 2014.
+
+Use the `cpt.meanvar` function and CROPS to identify the number of changes.
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(seq(from=1979,to=2014,by=1),seaice,type='l')
+```
+
+
+## Task: `cpt.np`
+Look at the `HeartRate` data from the `changepoint.np` package.  Use one of the non-parametric functions to see if there is evidence for changes in heart rate.
+```{r}
+data(HeartRate)
+```
+
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r} -->
+<!-- ftse.crops=cpt.var(ftse100[,2],method='PELT', -->
+<!--     penalty='CROPS',pen.value=c(5,1000)) -->
+<!-- ``` -->
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r,out.height='0.55\\textheight'} -->
+<!-- plot(ftse.crops,diagnostic=TRUE) -->
+<!-- abline(v=11,col='red') -->
+<!-- abline(v=34,col='red') -->
+<!-- ``` -->
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(ftse.crops,ncpts=11) -->
+<!-- ``` -->
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(ftse.crops,ncpts=34) -->
+<!-- ``` -->
+
+<!-- ## A solution: Air Temps -->
+<!-- ```{r} -->
+<!-- airtemp.crops=cpt.meanvar(airtemp[!is.na(airtemp)],method='PELT', -->
+<!--           penalty='CROPS',pen.value=c(1,100)) -->
+<!-- ``` -->
+<!-- ## A solution: Air Temps -->
+<!-- ```{r} -->
+<!-- plot(airtemp.crops,diagnostic=TRUE) -->
+<!-- abline(v=1,col='red') -->
+<!-- ``` -->
+<!-- ## A solution: Air Temps -->
+<!-- ```{r} -->
+<!-- plot(airtemp.crops,ncpts=1) -->
+<!-- ``` -->
+
+## A solution: Sea Ice
+```{r}
+seaice.crops=cpt.meanvar(seaice,method="PELT",
+      penalty="CROPS",pen.value=c(1,100))
+```
+
+## A solution: Sea Ice
+```{r,out.height='0.7\\textheight'}
+plot(seaice.crops,diagnostic=TRUE)
+abline(v=2,col='red')
+abline(v=4,col='red')
+```
+
+## A solution: Sea Ice
+```{r}
+plot(seaice.crops,ncpts=2)
+```
+
+## A solution: Sea Ice
+```{r}
+plot(seaice.crops,ncpts=4)
+```
+
+## A solution: HeartRate
+```{r}
+HR.pelt=cpt.np(HeartRate,method='PELT',
+               nquantiles=4*log(length(HeartRate)))
+ncpts(HR.pelt)
+```
+## A solution: HeartRate
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(HR.pelt)
+```
+## A solution: HeartRate
+```{r}
+HR.crops=cpt.np(HeartRate, penalty = "CROPS", 
+        pen.value = c(5,200), method="PELT",minseglen=2,
+        nquantiles =4*log(length(HeartRate)))
+```
+## A solution: HeartRate
+```{r, out.height='0.5\\textheight'}
+plot(HR.crops, diagnostic = TRUE)
+abline(v=11,col='red')
+abline(v=15,col='red')
+```
+## A solution: HeartRate
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(HR.crops, ncpts = 11)
+```
+## A solution: HeartRate
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(HR.crops, ncpts = 15)
+```
+
+## EnvCpt
+EnvCpt automatically fits 8 different models to your data:
+
+* Flat mean (+AR1, +Change, +AR1+Change)
+* Trend mean (+AR1, +Change, +AR1+Change)
+
+AR1= autoregressive of order 1 = current data point is strongly related to the last data point.
+
+**BONUS**: Can see which model is best
+
+**PITFALL**: Might be best to use another model which isn't checked - always look at the fit!
+
+## EnvCpt: Sea Ice
+```{r,echo=FALSE}
+if(!require(EnvCpt)){
+  install.packages('EnvCpt')
+}
+library(EnvCpt)
+```
+
+```{r,out.width='0.45\\textwidth'}
+seaice.envcpt=envcpt(seaice,verbose=FALSE)
+plot(seaice.envcpt)
+plot(seaice.envcpt,type='aic')
+```
+
+## EnvCpt: Sea Ice
+```{r,out.height='0.5\\textheight'}
+cpts(seaice.envcpt[[9]])
+plot(seaice.envcpt[[9]])
+```
+
+## Checking Assumptions
+The main assumptions for a Normal likelihood ratio test for a change in mean are:
+
+* Independent data points;
+* Normal distributed points pre and post change;
+* Constant variance across the data.
+
+How can we check these?
+
+## Checking Assumptions
+In reality we can't check assumptions prior to analysis.
+```{r,out.height='0.5\\textheight'}
+ts.plot(m1)
+```
+## Checking Assumptions
+```{r,out.height='0.6\\textheight'}
+hist(m1)
+```
+
+## Checking Assumptions
+```{r}
+shapiro.test(m1)
+ks.test(m1,pnorm,mean=mean(m1),sd=sd(m1))
+```
+
+## Checking Assumptions
+```{r,out.height='0.6\\textheight'}
+acf(m1)
+```
+
+<!-- ## How to check -->
+<!-- * Check each segment independently -->
+<!-- ```{r} -->
+<!-- cpt.seg=cbind(c(0,cpts(m1.amoc)),seg.len(m1.amoc)) -->
+<!-- data=data.set(m1.amoc) -->
+<!-- shapiro.func=function(x){ -->
+<!--   out=shapiro.test(data[(x[1]+1):(x[1]+x[2])]) -->
+<!--   return(c(out$statistic,p=out$p.value))} -->
+<!-- apply(cpt.seg,1,shapiro.func) -->
+<!-- ``` -->
+<!-- ## Segment Check -->
+<!-- ```{r} -->
+<!-- ks.func=function(x){ -->
+<!--   tmp=data[(x[1]+1):(x[1]+x[2])] -->
+<!--   out=ks.test(tmp,pnorm,mean=mean(tmp),sd=sd(tmp)) -->
+<!--   return(c(out$statistic,p=out$p.value))} -->
+<!-- apply(cpt.seg,1,ks.func) -->
+<!-- ``` -->
+<!-- ## Segment Check -->
+<!-- ```{r,out.width='0.45\\textwidth',out.height='0.5\\textheight'} -->
+<!-- qqnorm.func=function(x){ -->
+<!--   qqnorm(data[(x[1]+1):(x[1]+x[2])]) -->
+<!--   qqline(data[(x[1]+1):(x[1]+x[2])])} -->
+<!-- out=apply(cpt.seg,1,qqnorm.func) -->
+<!-- ``` -->
+<!-- ## Segment Check -->
+<!-- ```{r,out.width='0.45\\textwidth',out.height='0.5\\textheight'} -->
+<!-- acf.func=function(x){ -->
+<!--   acf(data[(x[1]+1):(x[1]+x[2])])} -->
+<!-- out=apply(cpt.seg,1,acf.func) -->
+<!-- ``` -->
+
+## How to check
+* Check the residuals
+```{r}
+means=param.est(m1.amoc)$mean
+m1.resid=m1-rep(means,seg.len(m1.amoc))
+shapiro.test(m1.resid)
+```
+
+## Residual Check
+```{r}
+ks.test(m1.resid,pnorm,mean=mean(m1.resid),sd=sd(m1.resid))
+```
+
+## Residual Check
+```{r,out.height='0.6\\textheight'}
+qqnorm(m1.resid)
+qqline(m1.resid)
+```
+
+## Residual Check
+```{r,out.height='0.6\\textheight'}
+acf(m1.resid)
+```
+
+## Task
+Check the assumptions you have made on the simulated, Nile, <!-- FTSE100 --> Air Temps and HeartRate data using either the segment or residual check. 
+
+What effect might any invalid assumptions have on the inference?
+
+
+
+## Consolidating Task
+Download the ratings for the following TV shows from the [IMDB](http://www.imdb.com/) and analyze the series using some of the techniques you have learnt from today.  For each series, do you identify any changes?  Are the assumptions you are making valid? What effect might any invalid assumptions have on the inference?
+
+* [Doctor Who](http://www.imdb.com/title/tt0436992/epdate)
+* [Grey's Anaytomy](http://www.imdb.com/title/tt0413573/epdate)
+* [Mistresses](http://www.imdb.com/title/tt2295809/epdate)
+* [The Simpsons](http://www.imdb.com/title/tt0096697/epdate)
+* [Top Gear](http://www.imdb.com/title/tt1628033/epdate)
+
+(Understandably IMBD does not allow screen scraping nor downloads of information for redistribution so you will have to copy and paste the table into Excel, or equivalent, yourself in order to get the ratings data into R.)
+
+## Bonus
+Just from looking at the data, can you predict which shows have been cancelled?
+
+## References
+[JSS:](https://www.jstatsoft.org/article/view/v058i03) Killick, Eckley (2014)  
+[PELT:](http://www.tandfonline.com/doi/abs/10.1080/01621459.2012.737745) Killick, Fearnhead, Eckley (2012)  
+[CROPS:](http://dx.doi.org/10.1080/10618600.2015.1116445) Kaynes, Eckley, Fearnhead (2015)  
+[cpt.np:](http://link.springer.com/article/10.1007/s11222-016-9687-5) Haynes, Fearnhead, Eckley (2016)  
+<!-- [Lavielle](http://dx.doi.org/10.1016/j.sigpro.2005.01.012) (2005) -->
+
+## Coming soon
+$\ldots$ to a changepoint package near you
+
+* Robust changepoint detection (GH)
+* Join-pin regression
+* FPOP (faster than binary segmentation but exact, GH)
+* Online PELT
+* Multivariate changepoints
+* Long memory or changepoint?
