@@ -1,12 +1,14 @@
 ---
-title: "Optimal changepoint detection"
+title: "Introduction to Changepoint Analysis"
 author: "Rebecca Killick(r.killick@lancs.ac.uk)"
-date: "IGS Workshop 2017" # International Glaciology Society
+date: "NHS Workshop 2020"
 output:
+  slidy_presentation: default
   beamer_presentation:
     includes:
       in_header: header.tex
     theme: lancaster
+  ioslides_presentation: default
 ---
 
 ```{r,include=FALSE}
