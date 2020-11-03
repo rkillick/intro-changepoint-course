@@ -321,60 +321,6 @@ library(changepoint)
 ```
 before you start
 
-## Task: GP Weekly Appts.
-```{r}
-GP.default=cpt.mean(GPvisitsWeekNov1718)
-cpts(GP.default)
-param.est(GP.default)
-```
-
-## Task: GP Weekly Appts.
-```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(GP.default)
-```
-
-## Task: GP Weekly Appts.
-```{r}
-GP.scale=cpt.mean(as.vector(scale(GPvisitsWeekNov1718)))
-cpts(GP.scale)
-```
-
-<!-- ## Task: Nile -->
-<!-- Data from Cobb (1978): readings of the annual flow volume of the Nile River at Aswan from 1871 to 1970. -->
-<!-- ```{r,fig.height=3,fig.width=7,out.height='0.35\\textheight',out.width='\\textwidth'} -->
-<!-- data(Nile) -->
-<!-- ts.plot(Nile) -->
-<!-- ``` -->
-
-<!-- Hypothesized that there was a change around the turn of the century. -->
-
-
-<!-- ## Task: Nile -->
-<!-- Use the  `cpt.mean` function to see if there is evidence for a change in mean in the Nile river data. -->
-<!-- ```{r} -->
-<!-- data(Nile) -->
-<!-- ``` -->
-<!-- If you identify a change, where is it and what are the pre and post change means? -->
-
-<!-- Don't forget to -->
-<!-- ```{r} -->
-<!-- library(changepoint) -->
-<!-- ``` -->
-<!-- before you start -->
-
-<!-- ## Task: Nile -->
-<!-- Annual flow volume of the Nile River at Aswan from 1871 to 1970 studied in Cobb(1978). -->
-<!-- ```{r} -->
-<!-- nile.default=cpt.mean(Nile) -->
-<!-- cpts(nile.default) -->
-<!-- cpts.ts(nile.default) -->
-<!-- param.est(nile.default) -->
-<!-- ``` -->
-
-<!-- ## Task: Nile -->
-<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
-<!-- plot(nile.default) -->
-<!-- ``` -->
 
 ## 	Multiple Changepoints
 ```{r,echo=FALSE}
@@ -520,21 +466,6 @@ param.est(mv1.pelt)
 plot(mv1.pelt,cpt.width=3,cpt.col='blue')
 ```
 
-<!-- ## FTSE100 -->
-<!-- Yahoo! Finance data, daily returns from FTSE100 index. -->
-<!-- 2nd April 1984 until the 13th September 2012 -->
-<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
-<!-- data(ftse100) -->
-<!-- plot(ftse100,type='l') -->
-<!-- ``` -->
-
-
-<!-- ## Task: FTSE100 -->
-<!-- Use the  `cpt.var` function to see if there is evidence for changes in variance in the FTSE100 data. -->
-<!-- ```{r} -->
-<!-- data(ftse100) -->
-<!-- ``` -->
-<!-- If you identify changes, where are they and what are the variances in each segment? -->
 
 ## Task HC1
 G+C content within part of Human Chromosome 1, data from NCBI.
@@ -547,37 +478,6 @@ data(HC1)
 ts.plot(HC1)
 ```
 
-<!-- ## A solution: FTSE100 -->
-<!-- Yahoo! Finance data, daily returns from FTSE100 index. -->
-<!-- ```{r} -->
-<!-- data(ftse100) -->
-<!-- ftse.man=cpt.var(ftse100[,2],method='PELT',minseglen=7) -->
-<!-- ncpts(ftse.man) -->
-<!-- ``` -->
-
-<!-- ## A solution: FTSE100 -->
-<!-- ```{r, fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
-<!-- plot(ftse.man,ylab='Returns') -->
-<!-- ``` -->
-
-## A solution: HC1
-```{r}
-data(HC1)
-hc1.pelt=cpt.meanvar(HC1,method='PELT',penalty='Manual',
-		pen.value=14)
-ncpts(hc1.pelt)
-```
-## A solution: HC1
-```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(hc1.pelt,ylab='G+C Content',cpt.width=3)
-```
-
-
-## Number of changes?
-Does the number of changes appear reasonable?
-```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(hc1.pelt,ylab='G+C Content',cpt.width=3)
-```
 
 ## CROPS
 **C**hangepoints for a **r**ange **o**f **p**enaltie**s**
@@ -657,33 +557,6 @@ cpts(out)
 plot(out)
 ```
 
-<!-- ## Task: CROPS -->
-<!-- Look at the FTSE100 data again and use the CROPS technique to determine an appropriate number of changes. -->
-
-<!-- ## Task: Air Temps -->
-<!-- ```{r,echo=FALSE} -->
-<!-- airtemp=rev(c(5.37,-0.67,-1.30,NaN,-4.80,-4.60,-3.43,-4.20,-5.17,-6.50,-3.83,NaN,-5.43,-3.73,-7.73,-7.00,-4.63,-7.27,-0.40,-5.53,-4.03,-6.00,-3.07,-2.23,-2.90,-6.93,-7.07,-6.10,-6.60,-6.80,-6.47,-4.50,-7.23,-5.27,-7.47,-8.00,-2.53,-2.83,-5.30,NaN,-4.33,-6.33,-7.27,-7.47,-8.77,-6.47,-3.80,-7.00,-6.40,-8.60,-4.77,-3.37,-5.20,-5.10,-7.50)) -->
-<!-- ``` -->
-<!-- Yearly air temperatures from Fedorova, AMJ glacier. 3 missing values -->
-<!-- Use the `cpt.meanvar` function and CROPS to identify the number of changes. -->
-
-<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
-<!-- plot(seq(from=1959,to=2013,by=1),airtemp,type='l') -->
-<!-- ``` -->
-
-<!-- Hint: To remove the NAs use `airtemp[!is.na(airtemp)]`. -->
-
-<!-- ## Task: Sea Ice -->
-<!-- ```{r,echo=FALSE} -->
-<!-- seaice=c(5.61,10.09,7.54,9.68,5.72,4.83,5.25,6.09,6.29,6.18,5.2,5.56,6.07,4.09,4.72,2.98,3.27,5.27,0.82,9.43,5.35,4.49,4.37,4.13,4.65,4.97,5.17,4.54,5.49,2.65,2.23,2.09,1.65,1.75,2.12,1.28) -->
-<!-- ``` -->
-<!-- Yearly Sea Ice measurements for July-Sept for Barents from 1979 until 2014. -->
-
-<!-- Use the `cpt.meanvar` function and CROPS to identify the number of changes. -->
-<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
-<!-- plot(seq(from=1979,to=2014,by=1),seaice,type='l') -->
-<!-- ``` -->
-
 
 ## Task: `cpt.np`
 Look at the `HeartRate` data from the `changepoint.np` package.  Use one of the non-parametric functions to see if there is evidence for changes in heart rate.
@@ -691,94 +564,6 @@ Look at the `HeartRate` data from the `changepoint.np` package.  Use one of the 
 data(HeartRate)
 ```
 
-<!-- ## A solution: FTSE100 -->
-<!-- ```{r} -->
-<!-- ftse.crops=cpt.var(ftse100[,2],method='PELT', -->
-<!--     penalty='CROPS',pen.value=c(5,1000)) -->
-<!-- ``` -->
-<!-- ## A solution: FTSE100 -->
-<!-- ```{r,out.height='0.55\\textheight'} -->
-<!-- plot(ftse.crops,diagnostic=TRUE) -->
-<!-- abline(v=11,col='red') -->
-<!-- abline(v=34,col='red') -->
-<!-- ``` -->
-<!-- ## A solution: FTSE100 -->
-<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
-<!-- plot(ftse.crops,ncpts=11) -->
-<!-- ``` -->
-<!-- ## A solution: FTSE100 -->
-<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
-<!-- plot(ftse.crops,ncpts=34) -->
-<!-- ``` -->
-
-<!-- ## A solution: Air Temps -->
-<!-- ```{r} -->
-<!-- airtemp.crops=cpt.meanvar(airtemp[!is.na(airtemp)],method='PELT', -->
-<!--           penalty='CROPS',pen.value=c(1,100)) -->
-<!-- ``` -->
-<!-- ## A solution: Air Temps -->
-<!-- ```{r} -->
-<!-- plot(airtemp.crops,diagnostic=TRUE) -->
-<!-- abline(v=1,col='red') -->
-<!-- ``` -->
-<!-- ## A solution: Air Temps -->
-<!-- ```{r} -->
-<!-- plot(airtemp.crops,ncpts=1) -->
-<!-- ``` -->
-
-<!-- ## A solution: Sea Ice -->
-<!-- ```{r} -->
-<!-- seaice.crops=cpt.meanvar(seaice,method="PELT", -->
-<!--       penalty="CROPS",pen.value=c(1,100)) -->
-<!-- ``` -->
-
-<!-- ## A solution: Sea Ice -->
-<!-- ```{r,out.height='0.7\\textheight'} -->
-<!-- plot(seaice.crops,diagnostic=TRUE) -->
-<!-- abline(v=2,col='red') -->
-<!-- abline(v=4,col='red') -->
-<!-- ``` -->
-
-<!-- ## A solution: Sea Ice -->
-<!-- ```{r} -->
-<!-- plot(seaice.crops,ncpts=2) -->
-<!-- ``` -->
-
-<!-- ## A solution: Sea Ice -->
-<!-- ```{r} -->
-<!-- plot(seaice.crops,ncpts=4) -->
-<!-- ``` -->
-
-## A solution: HeartRate
-```{r}
-HR.pelt=cpt.np(HeartRate,method='PELT',
-               nquantiles=4*log(length(HeartRate)))
-ncpts(HR.pelt)
-```
-## A solution: HeartRate
-```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(HR.pelt)
-```
-## A solution: HeartRate
-```{r}
-HR.crops=cpt.np(HeartRate, penalty = "CROPS", 
-        pen.value = c(5,200), method="PELT",minseglen=2,
-        nquantiles =4*log(length(HeartRate)))
-```
-## A solution: HeartRate
-```{r, out.height='0.5\\textheight'}
-plot(HR.crops, diagnostic = TRUE)
-abline(v=11,col='red')
-abline(v=15,col='red')
-```
-## A solution: HeartRate
-```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(HR.crops, ncpts = 11)
-```
-## A solution: HeartRate
-```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(HR.crops, ncpts = 15)
-```
 
 
 ## Checking Assumptions
@@ -811,37 +596,6 @@ ks.test(m1,pnorm,mean=mean(m1),sd=sd(m1))
 acf(m1)
 ```
 
-<!-- ## How to check -->
-<!-- * Check each segment independently -->
-<!-- ```{r} -->
-<!-- cpt.seg=cbind(c(0,cpts(m1.amoc)),seg.len(m1.amoc)) -->
-<!-- data=data.set(m1.amoc) -->
-<!-- shapiro.func=function(x){ -->
-<!--   out=shapiro.test(data[(x[1]+1):(x[1]+x[2])]) -->
-<!--   return(c(out$statistic,p=out$p.value))} -->
-<!-- apply(cpt.seg,1,shapiro.func) -->
-<!-- ``` -->
-<!-- ## Segment Check -->
-<!-- ```{r} -->
-<!-- ks.func=function(x){ -->
-<!--   tmp=data[(x[1]+1):(x[1]+x[2])] -->
-<!--   out=ks.test(tmp,pnorm,mean=mean(tmp),sd=sd(tmp)) -->
-<!--   return(c(out$statistic,p=out$p.value))} -->
-<!-- apply(cpt.seg,1,ks.func) -->
-<!-- ``` -->
-<!-- ## Segment Check -->
-<!-- ```{r,out.width='0.45\\textwidth',out.height='0.5\\textheight'} -->
-<!-- qqnorm.func=function(x){ -->
-<!--   qqnorm(data[(x[1]+1):(x[1]+x[2])]) -->
-<!--   qqline(data[(x[1]+1):(x[1]+x[2])])} -->
-<!-- out=apply(cpt.seg,1,qqnorm.func) -->
-<!-- ``` -->
-<!-- ## Segment Check -->
-<!-- ```{r,out.width='0.45\\textwidth',out.height='0.5\\textheight'} -->
-<!-- acf.func=function(x){ -->
-<!--   acf(data[(x[1]+1):(x[1]+x[2])])} -->
-<!-- out=apply(cpt.seg,1,acf.func) -->
-<!-- ``` -->
 
 ## How to check
 * Check the residuals
