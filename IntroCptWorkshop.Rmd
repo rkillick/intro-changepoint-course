@@ -3,12 +3,10 @@ title: "Introduction to Changepoint Analysis"
 author: "Rebecca Killick(r.killick@lancs.ac.uk)"
 date: "NHS Workshop 2020"
 output:
-  slidy_presentation: default
   beamer_presentation:
     includes:
       in_header: header.tex
     theme: lancaster
-  ioslides_presentation: default
 ---
 
 ```{r,include=FALSE}
@@ -46,7 +44,7 @@ Changepoints are also known as:
 * regime switching
 * detecting disorder
 
-  and can be found in a wide range of literature including
+and can be found in a wide range of literature including
 
 * quality control
 * economics
@@ -61,7 +59,7 @@ For data $y_1, \ldots, y_n$, if a changepoint exists at $\tau$, then $y_1,\ldots
 
 There are many different types of change.
   
-```{r, echo=F, out.width='.33\\textwidth'}
+```{r, echo=F, out.width='.3\\textwidth'}
 par(mar=c(4,4,.3,.3)) 
 set.seed(1)
 # Change in mean example following EFK
@@ -107,7 +105,7 @@ plot(data,xlab='',ylab='',xaxt='n',type='l')
 axis(1,at=c(0,100,200,300),labels=c(0,expression(tau[1]),expression(tau[2]),300))
 ```
 
-##Notation and Concepts
+## Notation and Concepts
 Thus a changepoint model for a change in mean has the following formulation:
 $$
 y_t = \left\{ \begin{array}{lcl} \mu_1 & \mbox{if} & 1\leq t \leq \tau_1 \\
@@ -117,8 +115,8 @@ y_t = \left\{ \begin{array}{lcl} \mu_1 & \mbox{if} & 1\leq t \leq \tau_1 \\
 $$
 
 
-##More complicated changes
-```{r, echo=F,out.width='.5\\textwidth'}
+## More complicated changes
+```{r, echo=F,out.width='.45\\textwidth'}
 set.seed(1)
 par(mar=c(4,4,.3,.3)) 
 # Change in ar example
@@ -144,7 +142,7 @@ plot(x,ynoise,type='l',xlab='',ylab='')
 
 
 ## Online vs Offline
-```{r, echo=F,out.width='.5\\textwidth'}
+```{r, echo=F,out.width='.45\\textwidth'}
 set.seed(1)
 par(mar=c(4,4,.3,.3)) 
 x=1:110
@@ -288,6 +286,8 @@ The package also contains:
 
 
 ## Single Change in Mean
+*IMPORTANT*: The `cpt.mean` function assumes that the variance of a time series is 1. If this is not the case then you need to scale the data prior to analysis.
+
 ```{r, out.width='.3\\textwidth'}
 set.seed(1)
 m1=c(rnorm(100,0,1),rnorm(100,5,1))
@@ -299,20 +299,19 @@ cpts(m1.amoc)
 plot(m1.amoc)
 ```
 
-## Task: Nile
-Data from Cobb (1978): readings of the annual flow volume of the Nile River at Aswan from 1871 to 1970.
+## Task: GP Weekly Appts.
+Data from NHS Digital, weekly number of appointments (for all types) between Nov 2017 and Oct 2018.
 ```{r,fig.height=3,fig.width=7,out.height='0.35\\textheight',out.width='\\textwidth'}
-data(Nile)
-ts.plot(Nile)
+load('GPvisitsWeekNov1718.Rdata')
+ts.plot(GPvisitsWeekNov1718)
 ```
 
-Hypothesized that there was a change around the turn of the century.
+Is there a change?
 
-
-## Task: Nile
-Use the  `cpt.mean` function to see if there is evidence for a change in mean in the Nile river data.
+## Task: GP Weekly Appts.
+Use the  `cpt.mean` function to see if there is evidence for a change in mean in the weekly GP appointment data.
 ```{r}
-data(Nile)
+load('GPvisitsWeekNov1718.Rdata')
 ```
 If you identify a change, where is it and what are the pre and post change means?
 
@@ -322,19 +321,60 @@ library(changepoint)
 ```
 before you start
 
-## Task: Nile
-Annual flow volume of the Nile River at Aswan from 1871 to 1970 studied in Cobb(1978).
+## Task: GP Weekly Appts.
 ```{r}
-nile.default=cpt.mean(Nile)
-cpts(nile.default)
-cpts.ts(nile.default)
-param.est(nile.default)
+GP.default=cpt.mean(GPvisitsWeekNov1718)
+cpts(GP.default)
+param.est(GP.default)
 ```
 
-## Task: Nile
+## Task: GP Weekly Appts.
 ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(nile.default)
+plot(GP.default)
 ```
+
+## Task: GP Weekly Appts.
+```{r}
+GP.scale=cpt.mean(as.vector(scale(GPvisitsWeekNov1718)))
+cpts(GP.scale)
+```
+
+<!-- ## Task: Nile -->
+<!-- Data from Cobb (1978): readings of the annual flow volume of the Nile River at Aswan from 1871 to 1970. -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.35\\textheight',out.width='\\textwidth'} -->
+<!-- data(Nile) -->
+<!-- ts.plot(Nile) -->
+<!-- ``` -->
+
+<!-- Hypothesized that there was a change around the turn of the century. -->
+
+
+<!-- ## Task: Nile -->
+<!-- Use the  `cpt.mean` function to see if there is evidence for a change in mean in the Nile river data. -->
+<!-- ```{r} -->
+<!-- data(Nile) -->
+<!-- ``` -->
+<!-- If you identify a change, where is it and what are the pre and post change means? -->
+
+<!-- Don't forget to -->
+<!-- ```{r} -->
+<!-- library(changepoint) -->
+<!-- ``` -->
+<!-- before you start -->
+
+<!-- ## Task: Nile -->
+<!-- Annual flow volume of the Nile River at Aswan from 1871 to 1970 studied in Cobb(1978). -->
+<!-- ```{r} -->
+<!-- nile.default=cpt.mean(Nile) -->
+<!-- cpts(nile.default) -->
+<!-- cpts.ts(nile.default) -->
+<!-- param.est(nile.default) -->
+<!-- ``` -->
+
+<!-- ## Task: Nile -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(nile.default) -->
+<!-- ``` -->
 
 ## 	Multiple Changepoints
 ```{r,echo=FALSE}
@@ -633,16 +673,16 @@ plot(out)
 
 <!-- Hint: To remove the NAs use `airtemp[!is.na(airtemp)]`. -->
 
-## Task: Sea Ice
-```{r,echo=FALSE}
-seaice=c(5.61,10.09,7.54,9.68,5.72,4.83,5.25,6.09,6.29,6.18,5.2,5.56,6.07,4.09,4.72,2.98,3.27,5.27,0.82,9.43,5.35,4.49,4.37,4.13,4.65,4.97,5.17,4.54,5.49,2.65,2.23,2.09,1.65,1.75,2.12,1.28)
-```
-Yearly Sea Ice measurements for July-Sept for Barents from 1979 until 2014.
+<!-- ## Task: Sea Ice -->
+<!-- ```{r,echo=FALSE} -->
+<!-- seaice=c(5.61,10.09,7.54,9.68,5.72,4.83,5.25,6.09,6.29,6.18,5.2,5.56,6.07,4.09,4.72,2.98,3.27,5.27,0.82,9.43,5.35,4.49,4.37,4.13,4.65,4.97,5.17,4.54,5.49,2.65,2.23,2.09,1.65,1.75,2.12,1.28) -->
+<!-- ``` -->
+<!-- Yearly Sea Ice measurements for July-Sept for Barents from 1979 until 2014. -->
 
-Use the `cpt.meanvar` function and CROPS to identify the number of changes.
-```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
-plot(seq(from=1979,to=2014,by=1),seaice,type='l')
-```
+<!-- Use the `cpt.meanvar` function and CROPS to identify the number of changes. -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(seq(from=1979,to=2014,by=1),seaice,type='l') -->
+<!-- ``` -->
 
 
 ## Task: `cpt.np`
@@ -686,28 +726,28 @@ data(HeartRate)
 <!-- plot(airtemp.crops,ncpts=1) -->
 <!-- ``` -->
 
-## A solution: Sea Ice
-```{r}
-seaice.crops=cpt.meanvar(seaice,method="PELT",
-      penalty="CROPS",pen.value=c(1,100))
-```
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r} -->
+<!-- seaice.crops=cpt.meanvar(seaice,method="PELT", -->
+<!--       penalty="CROPS",pen.value=c(1,100)) -->
+<!-- ``` -->
 
-## A solution: Sea Ice
-```{r,out.height='0.7\\textheight'}
-plot(seaice.crops,diagnostic=TRUE)
-abline(v=2,col='red')
-abline(v=4,col='red')
-```
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r,out.height='0.7\\textheight'} -->
+<!-- plot(seaice.crops,diagnostic=TRUE) -->
+<!-- abline(v=2,col='red') -->
+<!-- abline(v=4,col='red') -->
+<!-- ``` -->
 
-## A solution: Sea Ice
-```{r}
-plot(seaice.crops,ncpts=2)
-```
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r} -->
+<!-- plot(seaice.crops,ncpts=2) -->
+<!-- ``` -->
 
-## A solution: Sea Ice
-```{r}
-plot(seaice.crops,ncpts=4)
-```
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r} -->
+<!-- plot(seaice.crops,ncpts=4) -->
+<!-- ``` -->
 
 ## A solution: HeartRate
 ```{r}
@@ -740,37 +780,6 @@ plot(HR.crops, ncpts = 11)
 plot(HR.crops, ncpts = 15)
 ```
 
-## EnvCpt
-EnvCpt automatically fits 8 different models to your data:
-
-* Flat mean (+AR1, +Change, +AR1+Change)
-* Trend mean (+AR1, +Change, +AR1+Change)
-
-AR1= autoregressive of order 1 = current data point is strongly related to the last data point.
-
-**BONUS**: Can see which model is best
-
-**PITFALL**: Might be best to use another model which isn't checked - always look at the fit!
-
-## EnvCpt: Sea Ice
-```{r,echo=FALSE}
-if(!require(EnvCpt)){
-  install.packages('EnvCpt')
-}
-library(EnvCpt)
-```
-
-```{r,out.width='0.45\\textwidth'}
-seaice.envcpt=envcpt(seaice,verbose=FALSE)
-plot(seaice.envcpt)
-plot(seaice.envcpt,type='aic')
-```
-
-## EnvCpt: Sea Ice
-```{r,out.height='0.5\\textheight'}
-cpts(seaice.envcpt[[9]])
-plot(seaice.envcpt[[9]])
-```
 
 ## Checking Assumptions
 The main assumptions for a Normal likelihood ratio test for a change in mean are:
@@ -859,7 +868,7 @@ acf(m1.resid)
 ```
 
 ## Task
-Check the assumptions you have made on the simulated, Nile, <!-- FTSE100 --> Air Temps and HeartRate data using either the segment or residual check. 
+Check the assumptions you have made on the simulated, <!-- Nile -->, <!-- FTSE100  Air Temps --> GP Appointments, HC1 and HeartRate data using the residual check. 
 
 What effect might any invalid assumptions have on the inference?
 
@@ -877,7 +886,7 @@ Download the ratings for the following TV shows from the [IMDB](http://www.imdb.
 (Understandably IMBD does not allow screen scraping nor downloads of information for redistribution so you will have to copy and paste the table into Excel, or equivalent, yourself in order to get the ratings data into R.)
 
 ## Bonus
-Just from looking at the data, can you predict which shows have been cancelled?
+Just from looking at the data, can you predict which shows have been canceled?
 
 ## References
 [JSS:](https://www.jstatsoft.org/article/view/v058i03) Killick, Eckley (2014)  
@@ -886,12 +895,3 @@ Just from looking at the data, can you predict which shows have been cancelled?
 [cpt.np:](http://link.springer.com/article/10.1007/s11222-016-9687-5) Haynes, Fearnhead, Eckley (2016)  
 <!-- [Lavielle](http://dx.doi.org/10.1016/j.sigpro.2005.01.012) (2005) -->
 
-## Coming soon
-$\ldots$ to a changepoint package near you
-
-* Robust changepoint detection (GH)
-* Join-pin regression
-* FPOP (faster than binary segmentation but exact, GH)
-* Online PELT
-* Multivariate changepoints
-* Long memory or changepoint?
