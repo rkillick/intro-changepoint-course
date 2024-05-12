@@ -1,7 +1,8 @@
-base
 zoo
 changepoint
 changepoint.np
 cpm
 MASS
 EnvCpt
+WeightedPortTest
+changepoint.influence

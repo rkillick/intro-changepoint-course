@@ -1,7 +1,7 @@
 ---
 title: "Introduction to Changepoint Analysis"
 author: "Rebecca Killick(r.killick@lancs.ac.uk)"
-date: "NHS Workshop 2020"
+date: "CASI 2024"
 output:
   beamer_presentation:
     includes:
@@ -18,6 +18,14 @@ if(!require(changepoint.np)){
   install.packages('changepoint.np')
 }
 library(changepoint.np)
+if(!require(EnvCpt)){
+  install.packages('EnvCpt')
+}
+library(EnvCpt)
+if(!require(changepoint.influence)){
+  install.packages('changepoint.influence')
+}
+library(changepoint.influence)
 knitr::opts_chunk$set(fig.align='center',fig.show='hold',fig.width=4,fig.height=4,size='footnotesize', cache=TRUE)
 knitr::opts_knit$set(progress = FALSE,verbose = FALSE)
 ```
@@ -27,8 +35,8 @@ knitr::opts_knit$set(progress = FALSE,verbose = FALSE)
 * Notation
 * Likelihood based changepoints
     + Change in mean
-    + Change in variance
-    + Change in mean & variance
+    + Change in mean and/or variance
+    + Change in trend and autocorrelation
 * How many changes?
 * Non-parametric changepoints
 * Checking assumptions (if time allows)
@@ -169,6 +177,8 @@ Today we will use the
 
 `library(changepoint.np)`
 
+`library(EnvCpt)`
+
 packages.
 
 Other notable `R` packages are available for changepoint analysis including
@@ -176,7 +186,7 @@ Other notable `R` packages are available for changepoint analysis including
 * `strucchange` - for changes in regression
 * `bcp` - if you want to be Bayesian
 * `cpm` - for online changes (`changepoint.online` coming soon)
-* `EnvCpt` - for testing between changes in mean, trend and/or AR(1) structure
+* `fastcpd` - for long series with few or clustered changepoints
 
 ## Single Changepoint
 Assume we have time-series data where
@@ -299,19 +309,60 @@ cpts(m1.amoc)
 plot(m1.amoc)
 ```
 
-## Task: GP Weekly Appts.
-Data from NHS Digital, weekly number of appointments (for all types) between Nov 2017 and Oct 2018.
+<!-- ## Task: GP Weekly Appts. -->
+<!-- Data from NHS Digital, weekly number of appointments (for all types) between Nov 2017 and Oct 2018. -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.35\\textheight',out.width='\\textwidth'} -->
+<!-- load('GPvisitsWeekNov1718.Rdata') -->
+<!-- ts.plot(GPvisitsWeekNov1718) -->
+<!-- ``` -->
+
+<!-- Is there a change? -->
+
+<!-- ## Task: GP Weekly Appts. -->
+<!-- Use the  `cpt.mean` function to see if there is evidence for a change in mean in the weekly GP appointment data. -->
+<!-- ```{r} -->
+<!-- load('GPvisitsWeekNov1718.Rdata') -->
+<!-- ``` -->
+<!-- If you identify a change, where is it and what are the pre and post change means? -->
+
+<!-- Don't forget to -->
+<!-- ```{r} -->
+<!-- library(changepoint) -->
+<!-- ``` -->
+<!-- before you start -->
+
+<!-- ## Task: GP Weekly Appts. -->
+<!-- ```{r} -->
+<!-- GP.default=cpt.mean(GPvisitsWeekNov1718) -->
+<!-- cpts(GP.default) -->
+<!-- param.est(GP.default) -->
+<!-- ``` -->
+
+<!-- ## Task: GP Weekly Appts. -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(GP.default) -->
+<!-- ``` -->
+
+<!-- ## Task: GP Weekly Appts. -->
+<!-- ```{r} -->
+<!-- GP.scale=cpt.mean(as.vector(scale(GPvisitsWeekNov1718))) -->
+<!-- cpts(GP.scale) -->
+<!-- ``` -->
+
+## Task: Nile
+Data from Cobb (1978): readings of the annual flow volume of the Nile River at Aswan from 1871 to 1970.
 ```{r,fig.height=3,fig.width=7,out.height='0.35\\textheight',out.width='\\textwidth'}
-load('GPvisitsWeekNov1718.Rdata')
-ts.plot(GPvisitsWeekNov1718)
+data(Nile)
+ts.plot(Nile)
 ```
 
-Is there a change?
+Hypothesized that there was a change around the turn of the century.
 
-## Task: GP Weekly Appts.
-Use the  `cpt.mean` function to see if there is evidence for a change in mean in the weekly GP appointment data.
+
+## Task: Nile
+Use the  `cpt.mean` function to see if there is evidence for a change in mean in the Nile river data.
 ```{r}
-load('GPvisitsWeekNov1718.Rdata')
+data(Nile)
 ```
 If you identify a change, where is it and what are the pre and post change means?
 
@@ -321,6 +372,19 @@ library(changepoint)
 ```
 before you start
 
+## Task: Nile
+Annual flow volume of the Nile River at Aswan from 1871 to 1970 studied in Cobb(1978).
+```{r}
+nile.default=cpt.mean(Nile,method="AMOC")
+cpts(nile.default)
+cpts.ts(nile.default)
+param.est(nile.default)
+```
+
+## Task: Nile
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(nile.default)
+```
 
 ## 	Multiple Changepoints
 ```{r,echo=FALSE}
@@ -403,15 +467,15 @@ lines(x=(k+1):100,y=rep(mean(y[(k+1):100]),100-k),col='red',lwd=3)
 
 *Approximate* but computationally **fast**:
 
-* Binary Segmenation (`BinSeg`) (Scott and Knott (1974)) which is $\mathcal{O}(n\log n)$ in CPU time.
-	
+* Binary Segmentation (`BinSeg`) (Scott and Knott (1974)) which is $\mathcal{O}(n\log n)$ in CPU time.
+
 *Slower* but **exact**:
 
 * Segment Neighbourhood (`SegNeigh`) (Auger and Lawrence (1989)) is $\mathcal{O}(Qn^2)$.
 
 **Fast** and **exact**:
 
-* Pruned Exact Linear Time (`PELT`) (Killick et al. (2012)) At worst  $\mathcal{O}(n^2)$. For linear penalties <!-- $f(m)=m$ -->, scaling changes, $\mathcal{O}(n)$.
+* Pruned Exact Linear Time (`PELT`) (Killick et al. (2012)) At worst  $\mathcal{O}(n^2)$. For linear penalties<!-- $f(m)=m$ -->, scaling changes, $\mathcal{O}(n)$.
 
 
 ## cpt.var
@@ -466,6 +530,21 @@ param.est(mv1.pelt)
 plot(mv1.pelt,cpt.width=3,cpt.col='blue')
 ```
 
+<!-- ## FTSE100 -->
+<!-- Yahoo! Finance data, daily returns from FTSE100 index. -->
+<!-- 2nd April 1984 until the 13th September 2012 -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- data(ftse100) -->
+<!-- plot(ftse100,type='l') -->
+<!-- ``` -->
+
+
+<!-- ## Task: FTSE100 -->
+<!-- Use the  `cpt.var` function to see if there is evidence for changes in variance in the FTSE100 data. -->
+<!-- ```{r} -->
+<!-- data(ftse100) -->
+<!-- ``` -->
+<!-- If you identify changes, where are they and what are the variances in each segment? -->
 
 ## Task HC1
 G+C content within part of Human Chromosome 1, data from NCBI.
@@ -478,6 +557,37 @@ data(HC1)
 ts.plot(HC1)
 ```
 
+<!-- ## A solution: FTSE100 -->
+<!-- Yahoo! Finance data, daily returns from FTSE100 index. -->
+<!-- ```{r} -->
+<!-- data(ftse100) -->
+<!-- ftse.man=cpt.var(ftse100[,2],method='PELT',minseglen=7) -->
+<!-- ncpts(ftse.man) -->
+<!-- ``` -->
+
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r, fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(ftse.man,ylab='Returns') -->
+<!-- ``` -->
+
+## A solution: HC1
+```{r}
+data(HC1)
+hc1.pelt=cpt.meanvar(HC1,method='PELT',penalty='Manual',
+		pen.value=14)
+ncpts(hc1.pelt)
+```
+## A solution: HC1
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(hc1.pelt,ylab='G+C Content',cpt.width=3)
+```
+
+
+## Number of changes?
+Does the number of changes appear reasonable?
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(hc1.pelt,ylab='G+C Content',cpt.width=3)
+```
 
 ## CROPS
 **C**hangepoints for a **r**ange **o**f **p**enaltie**s**
@@ -557,6 +667,33 @@ cpts(out)
 plot(out)
 ```
 
+<!-- ## Task: CROPS -->
+<!-- Look at the FTSE100 data again and use the CROPS technique to determine an appropriate number of changes. -->
+
+<!-- ## Task: Air Temps -->
+<!-- ```{r,echo=FALSE} -->
+<!-- airtemp=rev(c(5.37,-0.67,-1.30,NaN,-4.80,-4.60,-3.43,-4.20,-5.17,-6.50,-3.83,NaN,-5.43,-3.73,-7.73,-7.00,-4.63,-7.27,-0.40,-5.53,-4.03,-6.00,-3.07,-2.23,-2.90,-6.93,-7.07,-6.10,-6.60,-6.80,-6.47,-4.50,-7.23,-5.27,-7.47,-8.00,-2.53,-2.83,-5.30,NaN,-4.33,-6.33,-7.27,-7.47,-8.77,-6.47,-3.80,-7.00,-6.40,-8.60,-4.77,-3.37,-5.20,-5.10,-7.50)) -->
+<!-- ``` -->
+<!-- Yearly air temperatures from Fedorova, AMJ glacier. 3 missing values -->
+<!-- Use the `cpt.meanvar` function and CROPS to identify the number of changes. -->
+
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(seq(from=1959,to=2013,by=1),airtemp,type='l') -->
+<!-- ``` -->
+
+<!-- Hint: To remove the NAs use `airtemp[!is.na(airtemp)]`. -->
+
+<!-- ## Task: Sea Ice -->
+<!-- ```{r,echo=FALSE} -->
+<!-- seaice=c(5.61,10.09,7.54,9.68,5.72,4.83,5.25,6.09,6.29,6.18,5.2,5.56,6.07,4.09,4.72,2.98,3.27,5.27,0.82,9.43,5.35,4.49,4.37,4.13,4.65,4.97,5.17,4.54,5.49,2.65,2.23,2.09,1.65,1.75,2.12,1.28) -->
+<!-- ``` -->
+<!-- Yearly Sea Ice measurements for July-Sept for Barents from 1979 until 2014. -->
+
+<!-- Use the `cpt.meanvar` function and CROPS to identify the number of changes. -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(seq(from=1979,to=2014,by=1),seaice,type='l') -->
+<!-- ``` -->
+
 
 ## Task: `cpt.np`
 Look at the `HeartRate` data from the `changepoint.np` package.  Use one of the non-parametric functions to see if there is evidence for changes in heart rate.
@@ -564,7 +701,188 @@ Look at the `HeartRate` data from the `changepoint.np` package.  Use one of the 
 data(HeartRate)
 ```
 
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r} -->
+<!-- ftse.crops=cpt.var(ftse100[,2],method='PELT', -->
+<!--     penalty='CROPS',pen.value=c(5,1000)) -->
+<!-- ``` -->
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r,out.height='0.55\\textheight'} -->
+<!-- plot(ftse.crops,diagnostic=TRUE) -->
+<!-- abline(v=11,col='red') -->
+<!-- abline(v=34,col='red') -->
+<!-- ``` -->
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(ftse.crops,ncpts=11) -->
+<!-- ``` -->
+<!-- ## A solution: FTSE100 -->
+<!-- ```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'} -->
+<!-- plot(ftse.crops,ncpts=34) -->
+<!-- ``` -->
 
+<!-- ## A solution: Air Temps -->
+<!-- ```{r} -->
+<!-- airtemp.crops=cpt.meanvar(airtemp[!is.na(airtemp)],method='PELT', -->
+<!--           penalty='CROPS',pen.value=c(1,100)) -->
+<!-- ``` -->
+<!-- ## A solution: Air Temps -->
+<!-- ```{r} -->
+<!-- plot(airtemp.crops,diagnostic=TRUE) -->
+<!-- abline(v=1,col='red') -->
+<!-- ``` -->
+<!-- ## A solution: Air Temps -->
+<!-- ```{r} -->
+<!-- plot(airtemp.crops,ncpts=1) -->
+<!-- ``` -->
+
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r} -->
+<!-- seaice.crops=cpt.meanvar(seaice,method="PELT", -->
+<!--       penalty="CROPS",pen.value=c(1,100)) -->
+<!-- ``` -->
+
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r,out.height='0.7\\textheight'} -->
+<!-- plot(seaice.crops,diagnostic=TRUE) -->
+<!-- abline(v=2,col='red') -->
+<!-- abline(v=4,col='red') -->
+<!-- ``` -->
+
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r} -->
+<!-- plot(seaice.crops,ncpts=2) -->
+<!-- ``` -->
+
+<!-- ## A solution: Sea Ice -->
+<!-- ```{r} -->
+<!-- plot(seaice.crops,ncpts=4) -->
+<!-- ``` -->
+
+## A solution: HeartRate
+```{r}
+HR.pelt=cpt.np(HeartRate,method='PELT',
+               nquantiles=4*log(length(HeartRate)))
+ncpts(HR.pelt)
+```
+## A solution: HeartRate
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(HR.pelt)
+```
+## A solution: HeartRate
+```{r}
+HR.crops=cpt.np(HeartRate, penalty = "CROPS", 
+        pen.value = c(5,200), method="PELT",minseglen=2,
+        nquantiles =4*log(length(HeartRate)))
+```
+## A solution: HeartRate
+```{r, out.height='0.5\\textheight'}
+plot(HR.crops, diagnostic = TRUE)
+abline(v=11,col='red')
+abline(v=15,col='red')
+```
+## A solution: HeartRate
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(HR.crops, ncpts = 11)
+```
+## A solution: HeartRate
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(HR.crops, ncpts = 15)
+```
+
+## Trend and Autocorrelation
+
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+load('temperature_anomalies_updated.RData')
+plot(Tanom_annual_df$year,Tanom_annual_df$HadCRUT,type='l')
+```
+
+## T+AC Model
+
+A simple linear trend and AR(1) model would be:
+
+$$
+y_t = \left\{ \begin{array}{lcl} \alpha_1 + \beta_1 t + \epsilon_t & \mbox{if} & 1\leq t \leq \tau_1 \\
+          \alpha_2 + \beta_2 t + \epsilon_t & \mbox{if} & \tau_1 < t \leq \tau_2 \\
+          \vdots & & \vdots \\
+          \alpha_{m+1} + \beta_{m+1} + \epsilon_t & \mbox{if} & \tau_m < t \leq \tau_{m+1}=n \end{array} \right.
+$$
+where
+$$
+\epsilon_t = \left\{ \begin{array}{lcl} \phi_{1,1} (y_t-\alpha_1 - \beta_1 t) + Z_t & \mbox{if} & 1\leq t \leq \tau_1 \\
+          \phi_{2,1} (y_t-\alpha_2 - \beta_2 t) + Z_t & \mbox{if} & \tau_1 < t \leq \tau_2 \\
+          \vdots & & \vdots \\
+          \phi_{m+1,1} (y_t-\alpha_{m+1} - \beta_{m+1} t) + Z_t & \mbox{if} & \tau_m < t \leq \tau_{m+1}=n \end{array} \right.
+$$
+
+and $Z_t \sim N(0,\sigma^2)$.
+
+## `EnvCpt`
+
+AIM: select the most parsimonious but accurate model for the data.
+  
+\begin{center}
+  \includegraphics[height=5.5cm]{Models.pdf}
+\end{center}
+
+Simple to extend with other types of models.
+
+## `EnvCpt`
+`envcpt(data,models=c("mean","meancpt","meanar1","meanar2",`
+`"meanar1cpt","meanar2cpt","trend","trendcpt","trendar1",`
+`"trendar2","trendar1cpt","trendar2cpt"), minseglen=5,...,`
+`verbose=TRUE)`
+
+* data is a vector or `ts` object
+* models is a character vector of models to fit, default is all
+* minseglen is the minimum number of observations between changes
+* verbose prints progress through model fitting
+* $\ldots$ are any other parameters to the `cpt.*` functions
+
+Returns S3 object, has AIC and plot methods.
+
+## Task: Annual Temperatures
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+load('temperature_anomalies_updated.RData')
+plot(Tanom_annual_df$year,Tanom_annual_df$HadCRUT,type='l')
+```
+
+## Task: Annual Temperatures
+Use the  `envcpt` function to see if there is evidence for a change in the temperature data.
+```{r}
+load('temperature_anomalies_updated.RData')
+```
+The data is available in `Tanom_annual_df` with several groups (columns) to choose from.
+
+What is the best model?  How many changepoints?
+
+Don't forget to
+```{r}
+library(EnvCpt)
+```
+before you start.
+
+## A solution: NASA
+
+```{r}
+library(EnvCpt)
+nasa.envcpt=envcpt(Tanom_annual_df$NASA[
+    !is.na(Tanom_annual_df$NASA)], verbose=F)
+which.min(AIC(nasa.envcpt))
+Tanom_annual_df$year[!is.na(Tanom_annual_df$NASA)
+                ][cpts(nasa.envcpt$trendar1cpt)]
+```
+
+## A solution: NASA
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(nasa.envcpt$trendar1cpt)
+abline(v=cpts(nasa.envcpt$trendar1cpt))
+```
+
+## A solution: NASA
+```{r,fig.height=3,fig.width=7,out.height='0.4\\textheight',out.width='\\textwidth'}
+plot(nasa.envcpt)
+```
 
 ## Checking Assumptions
 The main assumptions for a Normal likelihood ratio test for a change in mean are:
@@ -594,8 +912,41 @@ ks.test(m1,pnorm,mean=mean(m1),sd=sd(m1))
 ## Checking Assumptions
 ```{r,out.height='0.6\\textheight'}
 acf(m1)
+library(WeightedPortTest)
+Weighted.Box.test(m1, lag=min(50,length(m1)/4))$p.value
 ```
 
+<!-- ## How to check -->
+<!-- * Check each segment independently -->
+<!-- ```{r} -->
+<!-- cpt.seg=cbind(c(0,cpts(m1.amoc)),seg.len(m1.amoc)) -->
+<!-- data=data.set(m1.amoc) -->
+<!-- shapiro.func=function(x){ -->
+<!--   out=shapiro.test(data[(x[1]+1):(x[1]+x[2])]) -->
+<!--   return(c(out$statistic,p=out$p.value))} -->
+<!-- apply(cpt.seg,1,shapiro.func) -->
+<!-- ``` -->
+<!-- ## Segment Check -->
+<!-- ```{r} -->
+<!-- ks.func=function(x){ -->
+<!--   tmp=data[(x[1]+1):(x[1]+x[2])] -->
+<!--   out=ks.test(tmp,pnorm,mean=mean(tmp),sd=sd(tmp)) -->
+<!--   return(c(out$statistic,p=out$p.value))} -->
+<!-- apply(cpt.seg,1,ks.func) -->
+<!-- ``` -->
+<!-- ## Segment Check -->
+<!-- ```{r,out.width='0.45\\textwidth',out.height='0.5\\textheight'} -->
+<!-- qqnorm.func=function(x){ -->
+<!--   qqnorm(data[(x[1]+1):(x[1]+x[2])]) -->
+<!--   qqline(data[(x[1]+1):(x[1]+x[2])])} -->
+<!-- out=apply(cpt.seg,1,qqnorm.func) -->
+<!-- ``` -->
+<!-- ## Segment Check -->
+<!-- ```{r,out.width='0.45\\textwidth',out.height='0.5\\textheight'} -->
+<!-- acf.func=function(x){ -->
+<!--   acf(data[(x[1]+1):(x[1]+x[2])])} -->
+<!-- out=apply(cpt.seg,1,acf.func) -->
+<!-- ``` -->
 
 ## How to check
 * Check the residuals
@@ -619,17 +970,144 @@ qqline(m1.resid)
 ## Residual Check
 ```{r,out.height='0.6\\textheight'}
 acf(m1.resid)
+Weighted.Box.test(m1.resid,
+            lag=min(50,length(m1.resid)/4))$p.value
 ```
 
 ## Task
-Check the assumptions you have made on the simulated, <!-- Nile -->, <!-- FTSE100  Air Temps --> GP Appointments, HC1 and HeartRate data using the residual check. 
+Check the assumptions you have made on the simulated, Nile, <!-- FTSE100  Air Temps GP Appointments, -->HC1, HeartRate, and Temperature data using the residual check. 
 
 What effect might any invalid assumptions have on the inference?
 
 
+## Influence
+
+* Which data points are *influential* for obtaining the segmentation? 
+  * Changepoints versus Outliers
+  * How to measure influence?
+* How *stable* is the obtained segmentation?
+
+\mbox{}
+
+Note: Currently the package considers mean changes but we are working on expansions.  The premise is applicable to all model and changepoint forms.  It is just the calulation of what you ``expect" to happen that can be tricky.
+
+## Influence: Example
+```{r, out.height='0.6\\textheight'}
+set.seed(30) 
+x=c(rnorm(50),rnorm(50,mean=5),rnorm(1,mean=15),
+  rnorm(49,mean=5),rnorm(50,mean=4))
+xcpt=cpt.mean(x,method='PELT')
+plot(xcpt,cpt.width=3,ylab='')
+```
+## How to measure?
+Sources of Inspiration:
+
+* Regression Analysis: Measures of Influence (e.g., Cook's distance)
+* Robust Statistics: Influence Functions
+
+Two routes:
+
+* Modifying an observation
+* Leaving out an observation
+
+## Modify
+\includegraphics[scale=0.45]{changemeanoutlier} 
+
+## Stability Dashboard: Out
+```{r, out.height='0.7\\textheight'}
+x.inf.out=influence(xcpt,method='outlier')
+out.Stability=StabilityOverview(x,cpts(xcpt),x.inf.out,
+  legend.args=list(display=TRUE,x="topright",y=NULL,cex=1,
+  horiz=FALSE,xpd=FALSE,bty='n'))
+```
+
+## Location Stability: Out
+```{r, out.height='0.7\\textheight'}
+out.location=LocationStability(cpts(xcpt),x.inf.out,
+  type='Difference')
+```
+
+## Parameter Stability: Out
+```{r, out.height='0.7\\textheight'}
+ParameterStability(x.inf.out,original.mean=rep(
+  param.est(xcpt)$mean,times=diff(c(0,xcpt@cpts))))
+```
+
+## Influence Map: Out
+
+```{r, out.height='0.7\\textheight'}
+out.map=InfluenceMap(cpts(xcpt),x.inf.out)
+```
+
+## Stability Dashboard: Del
+```{r, out.height='0.6\\textheight'}
+x.inf.del=influence(xcpt,method='delete')
+del.Stability=StabilityOverview(x,cpts(xcpt),x.inf.del,
+  legend.args=list(display=TRUE,x="topright",y=NULL,cex=1,
+  horiz=FALSE,xpd=FALSE,bty='n'))
+```
+
+## Location Stability: Del
+```{r, out.height='0.7\\textheight'}
+del.location=LocationStability(cpts(xcpt),x.inf.del,
+  type='Difference')
+```
+
+## Parameter Stability: Del
+```{r, out.height='0.7\\textheight'}
+ParameterStability(x.inf.del,original.mean=rep(
+  param.est(xcpt)$mean,times=diff(c(0,xcpt@cpts))))
+```
+
+## Influence Map: Del
+
+```{r, out.height='0.7\\textheight'}
+del.map=InfluenceMap(cpts(xcpt),x.inf.del)
+```
+
+## Task: Nile Influence
+
+```{r}
+nile.cpts=cpt.mean(Nile,penalty="Manual",
+                   pen.value=100000,method="PELT")
+```
+
+Look at the influence on the simulated, and Nile. 
+
+What effect might any invalid assumptions have on the influences you are seeing?
+
+## Task: Nile Influence
+
+```{r,out.height='0.6\\textheight'}
+nile.inf=influence(nile.cpts,method="outlier")
+stab=StabilityOverview(data.set(nile.cpts), cpts(nile.cpts),
+    nile.inf,legend.args=list(display=T,x="topright", 
+    horiz=T,y=NULL,cex=1,bty="n",xpd=F))
+```
+
+## Task: Nile Influence
+
+```{r,out.height='0.6\\textheight'}
+ParameterStability(nile.inf, original.mean=rep(
+  param.est(nile.cpts)$mean,times=diff(c(0,nile.cpts@cpts))))
+```
+
+## Task: Nile Influence
+
+```{r,out.height='0.6\\textheight'}
+locstab=LocationStability(cpts(nile.cpts), nile.inf, 
+            type="Difference")
+```
+
+
+## Nile Influence
+
+```{r,out.height='0.6\\textheight'}
+inf=InfluenceMap(cpts(nile.cpts),nile.inf)
+```
 
 ## Consolidating Task
-Download the ratings for the following TV shows from the [IMDB](http://www.imdb.com/) and analyze the series using some of the techniques you have learnt from today.  For each series, do you identify any changes?  Are the assumptions you are making valid? What effect might any invalid assumptions have on the inference?
+Download the ratings for the following TV shows from the [IMDB](http://www.imdb.com/) and analyze the series using some of the techniques you have learnt from today.  For each series, do you identify any changes?  Are the assumptions you are making valid? What effect might any invalid assumptions have on the inference? Do the changepoints remain stable under influence?
 
 * [Doctor Who](http://www.imdb.com/title/tt0436992/epdate)
 * [Grey's Anaytomy](http://www.imdb.com/title/tt0413573/epdate)
@@ -640,12 +1118,20 @@ Download the ratings for the following TV shows from the [IMDB](http://www.imdb.
 (Understandably IMBD does not allow screen scraping nor downloads of information for redistribution so you will have to copy and paste the table into Excel, or equivalent, yourself in order to get the ratings data into R.)
 
 ## Bonus
-Just from looking at the data, can you predict which shows have been canceled?
+Just from looking at the data, can you predict which shows have been cancelled?
 
 ## References
 [JSS:](https://www.jstatsoft.org/article/view/v058i03) Killick, Eckley (2014)  
+
 [PELT:](http://www.tandfonline.com/doi/abs/10.1080/01621459.2012.737745) Killick, Fearnhead, Eckley (2012)  
+
 [CROPS:](http://dx.doi.org/10.1080/10618600.2015.1116445) Kaynes, Eckley, Fearnhead (2015)  
-[cpt.np:](http://link.springer.com/article/10.1007/s11222-016-9687-5) Haynes, Fearnhead, Eckley (2016)  
+
+[cpt.np:](http://link.springer.com/article/10.1007/s11222-016-9687-5) Haynes, Fearnhead, Eckley (2016)
+
+[EnvCpt:](https://doi.org/10.1175/JCLI-D-17-0863.1) Beaulieu, Killick (2018) 
+
+[Influence:](https://www.tandfonline.com/doi/full/10.1080/10618600.2021.2000873) Wilms, Killick, Matteson (2022)
+
 <!-- [Lavielle](http://dx.doi.org/10.1016/j.sigpro.2005.01.012) (2005) -->
 
